@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: default-deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ----------------------------------------------------
+    // GLOBAL HELPERS
+    // ----------------------------------------------------
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-+=/]+$'); 
+    }
+    
+    function incoming() { 
+      return request.resource.data; 
+    }
+    
+    function existing() { 
+      return resource.data; 
+    }
+    
+    function isSignedIn() { 
+      return request.auth != null; 
+    }
+
+    // ----------------------------------------------------
+    // ENTITY VALIDATION FUNCTIONS
+    // ----------------------------------------------------
+    function isValidUserProfile(data, userId) {
+      return data.userId == userId &&
+             data.email is string && data.email.size() <= 128 &&
+             data.callsign is string && data.callsign.size() <= 64;
+    }
+
+    function isValidCartItem(data) {
+      return data.productId is string && data.productId.size() <= 128 &&
+             (data.quantity is int || data.quantity is float) && data.quantity >= 1 && data.quantity <= 100;
+    }
+
+    function isValidOrder(data, userId) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.date is string && data.date.size() <= 64 &&
+             data.total is number && data.total >= 0 &&
+             data.status is string && data.status.size() <= 128 &&
+             data.userId == userId &&
+             data.items is list && data.items.size() > 0 && data.items.size() <= 50;
+    }
+
+    // ----------------------------------------------------
+    // MATCH RULES
+    // ----------------------------------------------------
+    
+    // User Profiles Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidUserProfile(incoming(), userId) && incoming().email == existing().email;
+      allow delete: if false; // Profiles are immortal
+      
+      // Cart items subcollection
+      match /cart/{itemId} {
+        allow read: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+        allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidId(itemId) && isValidCartItem(incoming());
+        allow update: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidId(itemId) && isValidCartItem(incoming());
+        allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidId(itemId);
+      }
+
+      // Orders subcollection
+      match /orders/{orderId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+        allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidId(orderId) && isValidOrder(incoming(), userId);
+        // Allow updates only to update tracking status in the application
+        allow update: if isSignedIn() && request.auth.uid == userId && isValidId(userId) && isValidId(orderId) && isValidOrder(incoming(), userId) && incoming().id == existing().id && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+        allow delete: if false; // Orders can't be deleted for ledger safety
+      }
+    }
+  }
+}

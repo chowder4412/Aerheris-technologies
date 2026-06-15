@@ -1,0 +1,6 @@
+{
+  "name": "Aetheris",
+  "description": "A sleek, cutting-edge smart technology platform interface, featuring high-performance visualization, custom neural dashboard, and secure credentials authentication.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

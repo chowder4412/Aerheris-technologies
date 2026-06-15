@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Premium user account profile, including callsign.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Unique identifier matching request.auth.uid"
+        },
+        "email": {
+          "type": "string",
+          "description": "User digital email address"
+        },
+        "callsign": {
+          "type": "string",
+          "description": "User biometric custom handle"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "email", "callsign"]
+    },
+    "CartItem": {
+      "title": "CartItem",
+      "description": "An allocation item reserved in the active shopping cart",
+      "type": "object",
+      "properties": {
+        "productId": {
+          "type": "string",
+          "description": "Product ID references"
+        },
+        "quantity": {
+          "type": "integer",
+          "description": "Quantity reserved"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["productId", "quantity"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A finalized elite hardware purchase order",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "User visible transaction key"
+        },
+        "date": {
+          "type": "string",
+          "description": "Timestamp string of checkout"
+        },
+        "total": {
+          "type": "number",
+          "description": "Total order spend"
+        },
+        "status": {
+          "type": "string",
+          "description": "Active logistic telemetry step"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Purchaser ID matching request.auth.uid"
+        },
+        "items": {
+          "type": "array",
+          "description": "Items purchased"
+        }
+      },
+      "required": ["id", "date", "total", "status", "userId", "items"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Profile info for the user"
+    },
+    "/users/{userId}/cart/{itemId}": {
+      "schema": "CartItem",
+      "description": "Cart items subcollection for offline & online secure syncing"
+    },
+    "/users/{userId}/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Orders subcollection matching the user"
+    }
+  }
+}
